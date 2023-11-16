@@ -5,8 +5,8 @@ metadata:
   annotations:
     "helm.sh/hook": post-install,post-upgrade
   labels:
-     {{- include "app.labels" . | nindent 4 }}
-  name:  {{ include "app.fullname" . }}
+    {{- include "php-template.labels" $ | nindent 4 }}
+  name: {{ include "php-template.fullname" $ }}
 spec:
   {{- if .host }}
   host: {{ .host }}
@@ -18,7 +18,7 @@ spec:
     targetPort: {{ $.Values.service.port }}
   to:
     kind: Service
-    name: {{ include "app.fullname" $ }}
+    name: {{ include "php-template.fullname" $ }}
   wildcardPolicy: None
   tls:
     insecureEdgeTerminationPolicy: Redirect
