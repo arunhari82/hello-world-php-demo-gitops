@@ -2,27 +2,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: spring-boot-app-dev
+  name: php-demo-dev
   namespace: openshift-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io  
 spec:
   project: default
   source:
-    repoURL: https://github.com/redhat-na-ssa/rhdh-springboot-smoke-test-gitops
+    repoURL: https://github.com/arunhari82/hello-world-php-demo-gitops
     targetRevision: HEAD
     path: ./helm/app
     helm:
       parameters:
       - name: namespace.name
-        value: spring-boot-app-dev
+        value: php-demo-dev
       - name: environment
         value: dev
       - name: image.tag
         value: latest
   destination:
     server: https://kubernetes.default.svc
-    namespace: spring-boot-app-dev
+    namespace: php-demo-dev
   syncPolicy:
     automated: 
       prune: true
