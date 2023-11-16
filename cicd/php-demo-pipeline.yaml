@@ -1,0 +1,129 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  creationTimestamp: '2023-11-14T20:15:17Z'
+  generation: 1
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          .: {}
+          'f:params': {}
+          'f:tasks': {}
+          'f:workspaces': {}
+      manager: Mozilla
+      operation: Update
+      time: '2023-11-14T20:15:17Z'
+  name: php-demo-pipeline
+  namespace: php-demo
+  resourceVersion: '82904'
+  uid: 94d2ff37-2f7f-458d-804d-4d1ad57e40b9
+spec:
+  params:
+    - default: 'https://github.com/arunhari82/hello-world-php-demo.git'
+      description: source repo that contains the application code
+      name: source-repo
+      type: string
+    - default: main
+      description: source branch to build from
+      name: source-branch
+      type: string
+    - default: quay.io/anattama/php-demo
+      description: reference of the image that will get created
+      name: output-image
+      type: string
+  tasks:
+    - name: clone-repo
+      params:
+        - name: url
+          value: $(params.source-repo)
+        - name: revision
+          value: $(params.source-branch)
+        - name: refspec
+          value: ''
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: crtFileName
+          value: ca-bundle.crt
+        - name: subdirectory
+          value: ''
+        - name: sparseCheckoutDirectories
+          value: ''
+        - name: deleteExisting
+          value: 'true'
+        - name: httpProxy
+          value: ''
+        - name: httpsProxy
+          value: ''
+        - name: noProxy
+          value: ''
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:c4b2183f7c7997bd401d86b33eefb637b3ef2fa90618e875106292cd69a15c14
+        - name: userHome
+          value: /home/git
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-folder
+    - name: image-build-push
+      params:
+        - name: IMAGE
+          value: '$(params.output-image):$(tasks.clone-repo.results.commit)'
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:55f5c7d88c77e1ab5a2ab8e877172b2b66cb196e21f10dc45148470d0ee8bbae
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'true'
+        - name: FORMAT
+          value: oci
+        - name: BUILD_EXTRA_ARGS
+          value: ''
+        - name: PUSH_EXTRA_ARGS
+          value: ''
+        - name: SKIP_PUSH
+          value: 'false'
+      runAfter:
+        - clone-repo
+      taskRef:
+        kind: ClusterTask
+        name: buildah
+      workspaces:
+        - name: source
+          workspace: source-folder
+    - name: image-tag
+      params:
+        - name: srcImageURL
+          value: 'docker://$(params.output-image):$(tasks.clone-repo.results.commit)'
+        - name: destImageURL
+          value: 'docker://$(params.output-image):latest'
+        - name: srcTLSverify
+          value: 'true'
+        - name: destTLSverify
+          value: 'true'
+      runAfter:
+        - image-build-push
+      taskRef:
+        kind: ClusterTask
+        name: skopeo-copy
+      workspaces:
+        - name: images-url
+          workspace: image-urls-scm
+  workspaces:
+    - name: source-folder
+    - name: image-urls-scm
